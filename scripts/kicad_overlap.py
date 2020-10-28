@@ -6,7 +6,7 @@ import io
 # import BytesIO
 import cairosvg
 import sys
-
+import os.path
 
 def trim(im):
     bg = Image.new(im.mode, im.size, im.getpixel((0,0)))
@@ -15,6 +15,14 @@ def trim(im):
     bbox = diff.getbbox()
     if bbox:
         return im.crop(bbox)
+
+if len(sys.argv) != 2:
+  print("Please specify pcb filename")
+  quit()
+
+if not os.path.isfile(sys.argv[1]):
+  print("This is not a file")
+  quit()
 
 # Load board and initialize plot controller
 board = pcbnew.LoadBoard(sys.argv[1])
