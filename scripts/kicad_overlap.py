@@ -6,7 +6,22 @@ import io
 # import BytesIO
 import cairosvg
 import sys
+import os
 import os.path
+
+class SilkOverlapPlugin(pcbnew.ActionPlugin):
+    def defaults(self):
+        self.name = "Show Silkscreen overlap"
+        self.category = "DRC addon"
+        self.description = "Highlight silkscreen overlapping with component pads"
+        self.show_toolbar_button = False # Optional, defaults to False
+        #self.icon_file_name = os.path.join(os.path.dirname(__file__), 'simple_plugin.png') # Optional, defaults to ""
+
+    def Run(self):
+        RunCheck("none")
+
+SilkOverlapPlugin().register() # Instantiate and register to Pcbnew
+
 
 def trim(im):
     bg = Image.new(im.mode, im.size, im.getpixel((0,0)))
@@ -16,66 +31,68 @@ def trim(im):
     if bbox:
         return im.crop(bbox)
 
-if len(sys.argv) != 2:
-  print("Please specify pcb filename")
-  quit()
+#if len(sys.argv) != 2:
+#  print("Please specify pcb filename")
+#  quit()
 
-if not os.path.isfile(sys.argv[1]):
-  print("This is not a file")
-  quit()
+#if not os.path.isfile(sys.argv[1]):
+#  print("This is not a file")
+#  quit()
 
-# Load board and initialize plot controller
-board = pcbnew.LoadBoard(sys.argv[1])
-pc = pcbnew.PLOT_CONTROLLER(board)
-po = pc.GetPlotOptions()
-po.SetPlotFrameRef(False)
+def RunCheck(name):
+  # Load board and initialize plot controller
+  #board = pcbnew.LoadBoard(name)
+  board = pcbnew.GetBoard()
+  pc = pcbnew.PLOT_CONTROLLER(board)
+  po = pc.GetPlotOptions()
+  po.SetPlotFrameRef(False)
 
-# Set current layer
-pc.SetLayer(pcbnew.F_Cu)
+  # Set current layer
+  pc.SetLayer(pcbnew.F_Cu)
 
-# Plot single layer to file
-#pc.OpenPlotfile("front_copper", pcbnew.PLOT_FORMAT_SVG, "front_copper")
-#print("Plotting to " + pc.GetPlotFileName())
-#pc.PlotLayer()
-#pc.ClosePlot()
+  # Plot single layer to file
+  #pc.OpenPlotfile("front_copper", pcbnew.PLOT_FORMAT_SVG, "front_copper")
+  #print("Plotting to " + pc.GetPlotFileName())
+  #pc.PlotLayer()
+  #pc.ClosePlot()
 
-#F.Mask
-pc.SetLayer(pcbnew.F_Mask)
-pc.OpenPlotfile("front_mask", pcbnew.PLOT_FORMAT_SVG, "front_mask")
-print("Plotting to " + pc.GetPlotFileName())
-name_mask = pc.GetPlotFileName()
-pc.PlotLayer()
-pc.ClosePlot()
+  #F.Mask
+  pc.SetLayer(pcbnew.F_Mask)
+  pc.OpenPlotfile("front_mask", pcbnew.PLOT_FORMAT_SVG, "front_mask")
+  print("Plotting to " + pc.GetPlotFileName())
+  name_mask = pc.GetPlotFileName()
+  pc.PlotLayer()
+  pc.ClosePlot()
 
-#F.SilkS
-pc.SetLayer(pcbnew.F_SilkS)
-pc.OpenPlotfile("front_silk", pcbnew.PLOT_FORMAT_SVG, "front_silk")
-print("Plotting to " + pc.GetPlotFileName())
-name_silk = pc.GetPlotFileName()
-pc.PlotLayer()
-pc.ClosePlot()
+  #F.SilkS
+  pc.SetLayer(pcbnew.F_SilkS)
+  pc.OpenPlotfile("front_silk", pcbnew.PLOT_FORMAT_SVG, "front_silk")
+  print("Plotting to " + pc.GetPlotFileName())
+  name_silk = pc.GetPlotFileName()
+  pc.PlotLayer()
+  pc.ClosePlot()
 
-out_silk = io.BytesIO()
-cairosvg.svg2png(url=name_silk, write_to=out_silk, scale=2.0)
-image_silk = Image.open(out_silk)
-out_mask = io.BytesIO()
-cairosvg.svg2png(url=name_mask, write_to=out_mask, scale=2.0)
-image_mask = Image.open(out_mask)
+  out_silk = io.BytesIO()
+  cairosvg.svg2png(url=name_silk, write_to=out_silk, scale=2.0)
+  image_silk = Image.open(out_silk)
+  out_mask = io.BytesIO()
+  cairosvg.svg2png(url=name_mask, write_to=out_mask, scale=2.0)
+  image_mask = Image.open(out_mask)
 
-#image_silk.show()
+  #image_silk.show()
 
-pixels_silk = image_silk.load() # create the pixel map
-pixels_mask = image_mask.load()
+  pixels_silk = image_silk.load() # create the pixel map
+  pixels_mask = image_mask.load()
 
-# https://pillow.readthedocs.io/en/3.1.x/reference/Image.html#PIL.Image.Image.paste
-#image_silk = image_silk.convert("RGB")
-for i in range(image_silk.size[0]): # for every pixel:
+  # https://pillow.readthedocs.io/en/3.1.x/reference/Image.html#PIL.Image.Image.paste
+  #image_silk = image_silk.convert("RGB")
+  for i in range(image_silk.size[0]): # for every pixel:
     for j in range(image_silk.size[1]):
        if pixels_silk[i,j] != (0, 0, 0, 0) and pixels_mask[i,j] != (0, 0, 0, 0):
 
        	 pixels_silk[i,j] = (255, 0 ,0)
 
 
-image_silk = trim(image_silk)
-#image_silk.save("test.png",optimize=0)
-image_silk.show()
+  image_silk = trim(image_silk)
+  #image_silk.save("test.png",optimize=0)
+  image_silk.show()
